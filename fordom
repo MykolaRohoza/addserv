@@ -28,6 +28,7 @@ mysql -uroot -proot \g mysql CREATE DATABASE my_parcel \g mysql GRANT ALL PRIVIL
 
 sudo cp /home/rohoza/Desktop/addserv /usr/bin/addserv
 
+sudo addserv <host-name> <document_root> <port>
 
 sudo cp /var/www/addserv/addserv /usr/bin/addserv
 
