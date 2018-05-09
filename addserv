@@ -1,0 +1,96 @@
+#!/bin/sh
+
+if [ $(id -u) -ne 0 ] ; then
+	echo "Please run as root" ; exit 1 ; 
+fi
+
+
+HOST_NAME="example-`date +%s`"
+
+if [ $# -gt 0 ]; then
+	HOST_NAME=$1
+    shift 1
+fi
+
+CORE_DIR="/var/www/$HOST_NAME"
+
+mkdir -p $CORE_DIR
+echo "---"
+echo "Create CORE_DIR"
+
+if [ $# -gt 0 ]; then
+    DOCUMENT_ROOT="$CORE_DIR/$1"
+    shift 1
+else
+    DOCUMENT_ROOT="$CORE_DIR"
+fi
+if [ $# -gt 0 ]; then
+    PORT="$1"
+    shift 1
+else
+    PORT=80
+fi
+    
+
+
+
+mkdir -p $DOCUMENT_ROOT
+
+echo "---"
+echo "Create DOCUMENT_ROOT if not same whith CORE_DIR"
+
+echo "<html>
+  <head>
+    <title>Welcome to Example.com!</title>
+  </head>
+  <body>
+    <h1>Success!  The $HOST_NAME virtual host is working!</h1>
+  </body>
+</html>" > "$DOCUMENT_ROOT/index.php"
+
+echo "---"
+echo "Create test index.php" 
+
+
+VIRTHOST_DATA="
+<VirtualHost *:$PORT>
+    ServerAdmin admin@$HOST_NAME
+    ServerName $HOST_NAME
+    ServerAlias www.$HOST_NAME
+    DocumentRoot $DOCUMENT_ROOT
+    <Directory $DOCUMENT_ROOT>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Order allow,deny
+        allow from all
+    </Directory>
+
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+"
+
+echo "$VIRTHOST_DATA" > "/etc/apache2/sites-available/$HOST_NAME.conf"
+
+echo "---"
+echo "Create configuration file"
+
+
+
+echo "---"
+echo "$HOST_NAME to host file"
+
+
+HOSTS_DATA=`cat /etc/hosts`
+echo "$HOSTS_DATA
+127.0.0.1 $HOST_NAME" > "/etc/hosts"
+
+echo "---"
+echo "add and restart server"
+
+a2ensite "$HOST_NAME.conf"
+
+service apache2 restart
+service apache2 reload
+
