@@ -8,11 +8,12 @@ FILE_HOSTS="/etc/hosts"
 
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
 	echo "HELP
-usage: addserv [--del [--live-core-dir]] HOST_NAME [ DOCUMENT_ROOT ]
+usage: addserv [--del [--live-core-dir]] HOST_NAME [--no-index-create] [ DOCUMENT_ROOT ]
 
 	DOCUMENT_ROOT 		working directory, by default $ALL_HOSTS/[HOST_NAME]/
 	can be $ALL_HOSTS/[HOST_NAME]/[DOCUMENT_ROOT]
 =============================================================================
+	--no-index-create, -i		no index create
 	--del, -d		remove Virtual host
 	--live-core-dir, -l		Leave core dir
 "
@@ -34,6 +35,14 @@ init()
 	CORE_DIR="$ALL_HOSTS/$HOST_NAME"
 	
 	echo "set CORE_DIR: $CORE_DIR"
+	CREATE_INDEX_FILE=1
+	
+	if [ $# -gt 0 ]; then
+		if [ "$1" = "--no-index-create" ] || [ "$1" = "-i" ]  ; then
+			CREATE_INDEX_FILE=0
+			shift 1
+		fi
+	fi
 	
 	if [ $# -gt 0 ]; then
 		DOCUMENT_ROOT="$CORE_DIR/$1"
@@ -68,7 +77,9 @@ addHost()
 	echo "---"
 	echo "Create DOCUMENT_ROOT if not same whith CORE_DIR"
 	
-	generateExampleIndex
+	if [ $CREATE_INDEX_FILE -eq 1 ] ; then
+		generateExampleIndex
+	fi 
 
 	generateVirtualHostConfig
 
