@@ -6,8 +6,17 @@ DIR_SITES_ENABLED="/etc/apache2/sites-enabled"
 DIR_SITES_AVAILABLE="/etc/apache2/sites-available"
 FILE_HOSTS="/etc/hosts"
 
-if [ $# -gt 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
-	echo "HELP"
+if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
+	echo "HELP
+usage: addserv [--del [-l]] HOST_NAME [ DOCUMENT_ROOT ]
+addserv [--del [-l]] HOST_NAME [ DOCUMENT_ROOT ]
+	DOCUMENT_ROOT 		working directory, by default $ALL_HOSTS/[HOST_NAME]/
+	can be $ALL_HOSTS/[HOST_NAME]/[DOCUMENT_ROOT]
+=============================================================================
+	--del -d	remove Virtual host
+	-l		Leave core dir
+"
+	exit 0
 fi
 
 
@@ -152,7 +161,6 @@ fi
 if [ $# -ge 2 ] && [ "$1" = "del" ]  ; then	
 	echo "$1"	
 	shift 1;
-
 	echo "remove '$1'"
 
 	init $@		
