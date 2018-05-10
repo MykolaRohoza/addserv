@@ -1,30 +1,58 @@
 #!/bin/sh
 
-if [ $(id -u) -ne 0 ] ; then
-	echo "Please run as root" ; exit 1 ; 
+# PARAMS
+ALL_HOSTS="/var/www"
+DIR_SITES_ENABLED="/etc/apache2/sites-enabled"
+DIR_SITES_AVAILABLE="/etc/apache2/sites-available"
+FILE_HOSTS="/etc/hosts"
+
+if [ $# -gt 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
+	echo "HELP"
 fi
 
-function setHostName{
+
+init()
+{	
+	echo "init vars"
 	HOST_NAME="example-`date +%s`"
-	
 	if [ $# -gt 0 ]; then
 		HOST_NAME=$1
 		shift 1
 	fi
-}
-function setCoreName{
-	CORE_DIR="/var/www/$HOST_NAME"
-}
+	
+	echo "set HOST_NAME: $HOST_NAME"
+	
+	CORE_DIR="$ALL_HOSTS/$HOST_NAME"
+	
+	echo "set CORE_DIR: $CORE_DIR"
+	
+	if [ $# -gt 0 ]; then
+		DOCUMENT_ROOT="$CORE_DIR/$1"
+		shift 1
+	else
+		DOCUMENT_ROOT="$CORE_DIR"
+	fi
+	
+	echo "set DOCUMENT_ROOT: $DOCUMENT_ROOT"
+	
+	if [ $# -gt 0 ]; then
+		PORT="$1"
+		shift 1
+	else
+		PORT=80
+	fi
+	
+	echo "set PORT: $PORT"
+} 
 
 
-
-function addHost {
+addHost()
+{
 
 	mkdir -p $CORE_DIR
 	echo "---"
 	echo "Create CORE_DIR"
 
-	setDocumentRoot
 	
 	mkdir -p $DOCUMENT_ROOT
 
@@ -57,25 +85,11 @@ function addHost {
 }
 
 
-function setPort {
-	if [ $# -gt 0 ]; then
-		PORT="$1"
-		shift 1
-	else
-		PORT=80
-	fi
-}
-function setDocumentRoot {
-	if [ $# -gt 0 ]; then
-		DOCUMENT_ROOT="$CORE_DIR/$1"
-		shift 1
-	else
-		DOCUMENT_ROOT="$CORE_DIR"
-	fi
-}
 
 
-function generateExampleIndex{
+
+generateExampleIndex()
+{
 	echo "<html>
 	  <head>
 		<title>Welcome to Example.com!</title>
@@ -85,7 +99,8 @@ function generateExampleIndex{
 	  </body>
 	</html>" > "$DOCUMENT_ROOT/index.php"
 }
-function generateVirtualHostConfig{
+generateVirtualHostConfig()
+{
 
 	VIRTHOST_DATA="
 	<VirtualHost *:$PORT>
@@ -106,31 +121,72 @@ function generateVirtualHostConfig{
 	# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
 	"
 
-	echo "$VIRTHOST_DATA" > "/etc/apache2/sites-available/$HOST_NAME.conf"
+	echo "$VIRTHOST_DATA" > "$DIR_SITES_AVAILABLE/$HOST_NAME.conf"
 }
 
-function addNewHostNameToHosts{
-	HOSTS_DATA=`cat /etc/hosts`
+readLine()
+{	
+	if [ "$2" != "$HOST_NAME" ] && [ "$1$2$3" != "" ]; then
+
+HOSTS_DATA="$HOSTS_DATA 
+$1 $2 $3";
+
+
+	fi
+}
+
+addNewHostNameToHosts()
+{
+	HOSTS_DATA=`cat $FILE_HOSTS`
 	echo "$HOSTS_DATA
-	127.0.0.1 $HOST_NAME" > "/etc/hosts"
+	127.0.0.1 $HOST_NAME" > "$FILE_HOSTS"
 }
 
-function init{
-	setHostName
-	setCoreName
-} 
+# start
 
-
-init 
-exit 112
-
-
-if [ $# -gt 0 ] && ["$1" == "del"]; then
-	echo "del"
-	exit 111
+if [ $(id -u) -ne 0 ] ; then
+	echo "Please run as root" ; exit 1 ; 
 fi
 
-addHost
+
+if [ $# -ge 2 ] && [ "$1" = "del" ]  ; then	
+	echo "$1"	
+	shift 1;
+
+	echo "remove '$1'"
+
+	init $@		
+
+	HOSTS_DATA=""
+
+	while read LINE;
+		do readLine $LINE;
+
+	done < /etc/hosts
+
+	echo "$HOSTS_DATA" > "$FILE_HOSTS"
+	if [ -f "$DIR_SITES_ENABLED/$HOST_NAME.conf" ] ; then
+		rm "$DIR_SITES_ENABLED/$HOST_NAME.conf"
+	fi
+
+	if [ -f "$DIR_SITES_AVAILABLE/$HOST_NAME.conf" ] ; then
+		rm "$DIR_SITES_AVAILABLE/$HOST_NAME.conf"
+	fi
+
+	if [ -d "$CORE_DIR" ] ; then
+		rm -rf "$CORE_DIR"
+	fi
+
+	service apache2 restart
+	service apache2 reload
+
+	exit 0 ; 
+fi
+
+echo "start"
+init $@
+addHost $@
+
 
 
 

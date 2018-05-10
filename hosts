@@ -1,0 +1,20 @@
+127.0.0.1	localhost
+127.0.1.1	C200814
+127.0.0.1 drupal-8
+127.0.0.1 test.com
+127.0.0.1 wp-qarea
+127.0.0.1 yodel-2
+127.0.0.1 yodel
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+127.0.0.1 dr-qarea
+127.0.0.1 dr-qarea
+127.0.0.1 diligences
+127.0.0.1 wp-diligences
+127.0.0.1 test-host
+127.0.0.1 del
