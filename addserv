@@ -8,13 +8,13 @@ FILE_HOSTS="/etc/hosts"
 
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] ; then
 	echo "HELP
-usage: addserv [--del [-l]] HOST_NAME [ DOCUMENT_ROOT ]
-addserv [--del [-l]] HOST_NAME [ DOCUMENT_ROOT ]
+usage: addserv [--del [--live-core-dir]] HOST_NAME [ DOCUMENT_ROOT ]
+
 	DOCUMENT_ROOT 		working directory, by default $ALL_HOSTS/[HOST_NAME]/
 	can be $ALL_HOSTS/[HOST_NAME]/[DOCUMENT_ROOT]
 =============================================================================
-	--del -d	remove Virtual host
-	-l		Leave core dir
+	--del, -d		remove Virtual host
+	--live-core-dir, -l		Leave core dir
 "
 	exit 0
 fi
@@ -67,21 +67,13 @@ addHost()
 
 	echo "---"
 	echo "Create DOCUMENT_ROOT if not same whith CORE_DIR"
+	
 	generateExampleIndex
-
-
-	echo "---"
-	echo "Create test index.php" 
 
 	generateVirtualHostConfig
 
-	echo "---"
-	echo "Create configuration file"
-
 	addNewHostNameToHosts
-	
-	echo "---"
-	echo "$HOST_NAME to hosts"
+
 
 	echo "---"
 	echo "add and restart server"
@@ -107,6 +99,11 @@ generateExampleIndex()
 		<h1>Success!  The $HOST_NAME virtual host is working!</h1>
 	  </body>
 	</html>" > "$DOCUMENT_ROOT/index.php"
+	
+		
+	echo "---"
+	echo "Create index.php in $DOCUMENT_ROOT"
+	
 }
 generateVirtualHostConfig()
 {
@@ -131,6 +128,9 @@ generateVirtualHostConfig()
 	"
 
 	echo "$VIRTHOST_DATA" > "$DIR_SITES_AVAILABLE/$HOST_NAME.conf"
+	
+	echo "---"
+	echo "Create configuration file"
 }
 
 readLine()
@@ -149,6 +149,9 @@ addNewHostNameToHosts()
 	HOSTS_DATA=`cat $FILE_HOSTS`
 	echo "$HOSTS_DATA
 	127.0.0.1 $HOST_NAME" > "$FILE_HOSTS"
+		
+	echo "---"
+	echo "$HOST_NAME to hosts"
 }
 
 # start
@@ -158,37 +161,45 @@ if [ $(id -u) -ne 0 ] ; then
 fi
 
 
-if [ $# -ge 2 ] && [ "$1" = "del" ]  ; then	
-	echo "$1"	
-	shift 1;
-	echo "remove '$1'"
+if [ $# -ge 2 ] ; then	
+	if [ "$1" = "-d" ] || [ "$1" = "--del" ]  ; then	
+		echo "$1"	
+		shift 1;
+		REMOVE_CORE_DIR=1
 
-	init $@		
+		if [ "$1" = "--live-core-dir" ] || [ "$1" = "-l" ]  ; then	
+			REMOVE_CORE_DIR=0
+		fi
+		
+		echo "remove '$1'"
 
-	HOSTS_DATA=""
+		init $@		
 
-	while read LINE;
-		do readLine $LINE;
+		HOSTS_DATA=""
 
-	done < /etc/hosts
+		while read LINE;
+			do readLine $LINE;
 
-	echo "$HOSTS_DATA" > "$FILE_HOSTS"
-	if [ -f "$DIR_SITES_ENABLED/$HOST_NAME.conf" ] ; then
-		rm "$DIR_SITES_ENABLED/$HOST_NAME.conf"
+		done < /etc/hosts
+
+		echo "$HOSTS_DATA" > "$FILE_HOSTS"
+		if [ -f "$DIR_SITES_ENABLED/$HOST_NAME.conf" ] ; then
+			rm "$DIR_SITES_ENABLED/$HOST_NAME.conf"
+		fi
+
+		if [ -f "$DIR_SITES_AVAILABLE/$HOST_NAME.conf" ] ; then
+			rm "$DIR_SITES_AVAILABLE/$HOST_NAME.conf"
+		fi
+
+		if [ $REMOVE_CORE_DIR -eq 1 ] && [ -d "$CORE_DIR" ] ; then
+			rm -rf "$CORE_DIR"
+		fi
+
+		service apache2 restart
+		service apache2 reload
+
+		exit 0 ; 
 	fi
-
-	if [ -f "$DIR_SITES_AVAILABLE/$HOST_NAME.conf" ] ; then
-		rm "$DIR_SITES_AVAILABLE/$HOST_NAME.conf"
-	fi
-
-	if [ -d "$CORE_DIR" ] ; then
-		rm -rf "$CORE_DIR"
-	fi
-
-	service apache2 restart
-	service apache2 reload
-
-	exit 0 ; 
 fi
 
 echo "start"
